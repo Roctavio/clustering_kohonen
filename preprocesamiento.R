@@ -29,6 +29,8 @@ library(sqldf)
 library(mlr)
 library(nortest)
 library(tseries)
+library(factoextra)
+library(kohonen)
 
 # LEYENDO DATASET ####
 data <- read_excel("data.xls")
@@ -59,7 +61,7 @@ table(data2$RealFace)
 
 #BodyType
 # Variable sucia, se decide modificar los 7 registros equivocados y asignarles la moda
-table(data2$BodyType)
+table(data$BodyType)
 data2$BodyType <- 
   ifelse(data2$BodyType == 'Akinfenwa',"Normal",
          ifelse(data2$BodyType=="C. Ronaldo","Normal",
@@ -77,7 +79,7 @@ table(data2$BodyType)
 #WorkRate Evaluar si es que se considera o no
 #Consultar con Luis
 #Eliminada
-#table(data2$WorkRate)
+#table(data$WorkRate)
 
 #PreferredFoot  Left:1, Right:2
 table(data2$PreferredFoot)
@@ -91,7 +93,7 @@ table(data2$PreferredFoot)
 #Position 27 categorías
 #Consultar diccionario
 # Se decidió retirar
-table(data2$ContractValidUntil)
+table(data$Position)
 
 
 #WorkRate
@@ -112,9 +114,12 @@ data3$Nationality <- as.factor(data3$Nationality)
 
 #ValueM
 # Se imputó por 0
+#VALIDAR na
 data3$ValueM <- as.numeric(data3$ValueM) 
 table(data3$ValueM)
 data3$ValueM[is.na(data3$ValueM)] <- 0
+table(data3$ValueM)
+table(data$ValueM)
 
 #InternationalReputation
 data3$InternationalReputation <- as.factor(data3$InternationalReputation)
@@ -154,6 +159,7 @@ boxplot(data3$ShortPassing,col="peru", main="ShortPassing")
 boxplot(data3$Volleys,col="peru", main="Volleys")
 title("ATTACKING", line = -1, outer = TRUE)
 
+
 #SKILL
 windows()
 par(mfrow=c(2,3))
@@ -174,6 +180,8 @@ boxplot(data3$Reactions,col="peru", main="Reactions")
 boxplot(data3$Balance,col="peru", main="Balance")
 title("MOVEMENT", line = -1, outer = TRUE)
 
+
+
 #POWER
 windows()
 par(mfrow=c(2,3))
@@ -183,6 +191,7 @@ boxplot(data3$Stamina,col="peru", main="Stamina")
 boxplot(data3$Strength,col="peru", main="Strength")
 boxplot(data3$LongShots,col="peru", main="LongShots")
 title("POWER", line = -1, outer = TRUE)
+
 
 #MENTALITY
 windows()
@@ -195,6 +204,7 @@ boxplot(data3$Penalties,col="peru", main="Penalties")
 boxplot(data3$Composure,col="peru", main="Composure")
 title("MENTALITY", line = -1, outer = TRUE)
 
+
 #DEFENDING
 windows()
 par(mfrow=c(1,3))
@@ -202,6 +212,7 @@ boxplot(data3$Marking,col="peru", main="Marking")
 boxplot(data3$StandingTackle,col="peru", main="StandingTackle")
 boxplot(data3$SlidingTackle,col="peru", main="SlidingTackle")
 title("DEFENDING", line = -1, outer = TRUE)
+
 
 #GOALKEEPING
 windows()
@@ -214,9 +225,52 @@ boxplot(data3$GKReflexes ,col="peru", main="GKReflexes")
 title("GOALKEEPING", line = -1, outer = TRUE)
 
 
+
+
 table(data3$JerseyNumber)
 
 outliers1 <- boxplot(data$PIM)$out
 outliers1 ; length(outliers1)
 boxplot.stats(data$PIM)
 data_set <- data
+
+
+# PCA ####
+
+# Selección de variables para el PCA
+pca_data3 <- data3 %>% select(Crossing,Finishing,HeadingAccuracy,ShortPassing,Volleys,Dribbling,Curve,
+                              FKAccuracy,LongPassing,BallControl,Acceleration,SprintSpeed,Agility,Reactions,
+                              Balance,ShotPower,Jumping,Stamina,Strength,LongShots,Aggression,Interceptions,
+                              Positioning,Vision,Penalties,Composure,Marking,StandingTackle,SlidingTackle,GKDiving,
+                              GKHandling,GKKicking,GKPositioning,GKReflexes)
+
+
+
+# Aplicando el PCA
+#pca.data3 <- princomp(pca_data3)
+
+# Resumen
+summary(pca.data3)
+  #Se podrian tomar 3 componentes (81.2%)
+
+# GrÃ¡fico de la varianza explicada
+windows()
+plot(pca.data3)
+
+# Utilizando solo 3 componentes
+pca.data3 <- prcomp(pca_data3,scale=T, rank. = 3) 
+head(pca.data3$x, 10) # Puntuaciones factoriales 
+pca.data3$x
+
+#Aplicando Kohonen
+
+## -- Primer Modelo Kohonen  -- ##
+
+kohonem_data3 <- som(pca.data3$x, grid = somgrid(5,5,"hexagonal"))
+
+summary(kohonem_data3)
+
+kohonem_data3$unit.classif 
+
+plot(kohonem_data3, main="Datos de vino")
+  
